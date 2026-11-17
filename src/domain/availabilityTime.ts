@@ -20,14 +20,30 @@ export const timeToMinutes = (time: string): number => {
   return hours * 60 + minutes
 }
 
+const minutesPerDay = 24 * 60
+
+/** Divide el intervalo por fecha local para usarlo en el plan y al comprobar cruces. */
+export const getSlotSegments = (slot: AvailabilitySlotInput) => {
+  const startMinute = timeToMinutes(slot.startTime)
+  const endMinute = timeToMinutes(slot.endTime)
+  if (endMinute >= startMinute) return [{ date: slot.date, startMinute, endMinute }]
+
+  const nextDay = new Date(`${slot.date}T00:00:00Z`)
+  nextDay.setUTCDate(nextDay.getUTCDate() + 1)
+  const nextDate = nextDay.toISOString().split('T')[0]
+  const segments = [{ date: slot.date, startMinute, endMinute: minutesPerDay }]
+  if (endMinute > 0) segments.push({ date: nextDate, startMinute: 0, endMinute })
+  return segments
+}
+
 /**
- * Calcula la duración de un espacio válido dentro de un mismo día.
+ * Calcula la duración de un espacio, incluido un posible cruce de medianoche.
  *
  * @param slot - Espacio que se quiere medir.
  * @returns Duración en minutos enteros.
  */
 export const getSlotDuration = (slot: AvailabilitySlotInput): number =>
-  timeToMinutes(slot.endTime) - timeToMinutes(slot.startTime)
+  getSlotSegments(slot).reduce((total, segment) => total + segment.endMinute - segment.startMinute, 0)
 
 /**
  * Expresa la hora local actual en minutos, incluida la fracción del minuto.
@@ -47,11 +63,11 @@ export const getLocalMinute = (now: Date): number =>
  */
 export const getRemainingMinutes = (slot: AvailabilitySlotInput, now: Date): number => {
   const today = getLocalToday(now)
-  if (slot.date > today) return getSlotDuration(slot)
-  if (slot.date < today) return 0
-
-  const start = Math.max(timeToMinutes(slot.startTime), getLocalMinute(now))
-  return Math.max(0, timeToMinutes(slot.endTime) - Math.ceil(start))
+  return getSlotSegments(slot).reduce((total, { date, startMinute, endMinute }) => {
+    if (date < today) return total
+    const start = date === today ? Math.max(startMinute, Math.ceil(getLocalMinute(now))) : startMinute
+    return total + Math.max(0, endMinute - start)
+  }, 0)
 }
 
 /**
@@ -63,5 +79,6 @@ export const getRemainingMinutes = (slot: AvailabilitySlotInput, now: Date): num
  */
 export const hasSlotEnded = (slot: AvailabilitySlotInput, now: Date): boolean => {
   const today = getLocalToday(now)
-  return slot.date < today || (slot.date === today && timeToMinutes(slot.endTime) <= getLocalMinute(now))
+  const { date, endMinute } = getSlotSegments(slot).at(-1)!
+  return date < today || (date === today && endMinute <= getLocalMinute(now))
 }

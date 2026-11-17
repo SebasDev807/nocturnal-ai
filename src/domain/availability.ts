@@ -1,4 +1,4 @@
-/** Fecha e intervalo local de un espacio de estudio dentro del mismo día. */
+/** Fecha de inicio e intervalo local de un espacio de estudio. */
 export type AvailabilitySlotInput = {
   /** Fecha local en formato YYYY-MM-DD. */
   date: string

@@ -49,6 +49,6 @@ Los nombres de código y archivos están en inglés. Los textos de interfaz, com
 - Los datos se guardan en el perfil del navegador y en el origen utilizado, que incluye protocolo, host y puerto. Cambiar de origen o borrar los datos del sitio puede dejar los registros fuera de alcance.
 - El MVP carece de sincronización entre dispositivos y de importación automática desde plataformas académicas. Una pestaña puede necesitar recargarse para ver cambios hechos en otra.
 - El planificador aplica reglas deterministas. Las duraciones son estimaciones ingresadas por el estudiante y el cálculo no usa un modelo avanzado de IA.
-- Los espacios son concretos, de un mismo día y en hora local. No se generan recurrencias ni descansos automáticos. El plan se pierde al recargar y puede quedar desactualizado por el paso del tiempo hasta que se vuelva a generar.
+- Los espacios se registran en hora local. Si la hora de fin es anterior a la de inicio, el espacio termina al día siguiente. No se generan recurrencias ni descansos automáticos. El plan se pierde al recargar y puede quedar desactualizado por el paso del tiempo hasta que se vuelva a generar.
 
 Consulta la [guía de sustentación](docs/presentation-guide.md) para preparar la demostración y la revisión manual.

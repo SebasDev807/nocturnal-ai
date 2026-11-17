@@ -36,7 +36,7 @@ export const AvailabilityList = ({ slots, now, isSaving, onEdit, onRemove }: Ava
    */
   const renderSlot = (slot: AvailabilitySlot) => {
     const ended = hasSlotEnded(slot, now)
-    const interval = `${slot.startTime}–${slot.endTime}`
+    const interval = `${slot.startTime}–${slot.endTime}${slot.endTime < slot.startTime ? ' (día siguiente)' : ''}`
     const label = `${slot.date}, ${interval}`
 
     /** Abre el espacio en el formulario. */

@@ -1,6 +1,6 @@
 import type { Activity } from './activity'
 import type { AvailabilitySlot } from './availability'
-import { getLocalMinute, isValidLocalTime, timeToMinutes } from './availabilityTime'
+import { getLocalMinute, getSlotSegments, isValidLocalTime } from './availabilityTime'
 import { getLocalToday, isValidLocalDate } from './localDate'
 
 export type StudySession = {
@@ -49,16 +49,6 @@ const compareActivities = (first: Activity, second: Activity): number => {
 }
 
 /**
- * Ordena los espacios cronológicamente.
- *
- * @param first - Primer espacio.
- * @param second - Segundo espacio.
- * @returns El orden relativo de los intervalos.
- */
-const compareSlots = (first: AvailabilitySlot, second: AvailabilitySlot): number =>
-  first.date.localeCompare(second.date) || first.startTime.localeCompare(second.startTime)
-
-/**
  * Convierte minutos desde medianoche al formato HH:mm.
  *
  * @param minute - Minuto local dentro del día.
@@ -105,23 +95,24 @@ export const generateStudyPlan = (
 
   for (const slot of slots) {
     if (!isValidLocalDate(slot.date) || !isValidLocalTime(slot.startTime)
-      || !isValidLocalTime(slot.endTime) || slot.startTime >= slot.endTime) {
+      || !isValidLocalTime(slot.endTime) || slot.startTime === slot.endTime) {
       return { error: `Hay un espacio con fecha o intervalo inválido (${slot.date}, ${slot.startTime}–${slot.endTime}).` }
     }
   }
 
   const usableSlots: { date: string; nextMinute: number; endMinute: number }[] = []
-  let previous: AvailabilitySlot | undefined
+  const segments = slots.flatMap(getSlotSegments)
+    .sort((first, second) => first.date.localeCompare(second.date) || first.startMinute - second.startMinute)
+  let previous: (typeof segments)[number] | undefined
   let availableMinutes = 0
-  for (const slot of [...slots].sort(compareSlots)) {
-    if (previous?.date === slot.date && slot.startTime < previous.endTime) {
+  for (const slot of segments) {
+    if (previous?.date === slot.date && slot.startMinute < previous.endMinute) {
       return { error: `Hay espacios solapados el ${slot.date}. Corrígelos antes de generar el plan.` }
     }
     previous = slot
 
     if (slot.date < today) continue
-    const startMinute = timeToMinutes(slot.startTime)
-    const endMinute = timeToMinutes(slot.endTime)
+    const { startMinute, endMinute } = slot
     const nextMinute = slot.date === today ? Math.max(startMinute, currentMinute) : startMinute
     if (nextMinute >= endMinute) continue
 

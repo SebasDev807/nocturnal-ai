@@ -1,9 +1,9 @@
 import type { AvailabilitySlot, AvailabilitySlotInput } from './availability'
-import { getLocalMinute, isValidLocalTime, timeToMinutes } from './availabilityTime'
+import { getLocalMinute, getSlotSegments, isValidLocalTime, timeToMinutes } from './availabilityTime'
 import { getLocalToday, isValidLocalDate } from './localDate'
 
 /**
- * Valida los campos, el inicio local y los cruces con espacios del mismo día.
+ * Valida los campos, el inicio local y los cruces con otros espacios.
  *
  * @param input - Fecha e intervalo propuestos.
  * @param slots - Espacios con los que se comprueba el solapamiento.
@@ -25,8 +25,8 @@ export const validateAvailabilitySlot = (
   if (!isValidLocalTime(endTime)) errors.endTime = 'Ingresa una hora de fin válida.'
   if (errors.date || errors.startTime || errors.endTime) return errors
 
-  if (endTime <= startTime) {
-    errors.endTime = 'La hora de fin debe ser posterior a la de inicio.'
+  if (endTime === startTime) {
+    errors.endTime = 'La hora de fin debe ser distinta de la de inicio.'
     return errors
   }
 
@@ -37,9 +37,17 @@ export const validateAvailabilitySlot = (
     return errors
   }
 
+  const segments = getSlotSegments(input)
   for (const slot of slots) {
-    if (slot.id !== original?.id && slot.date === date && startTime < slot.endTime && endTime > slot.startTime) {
-      errors.startTime = 'Este horario se solapa con otro espacio del mismo día.'
+    if (slot.id === original?.id) continue
+
+    const overlaps = getSlotSegments(slot).some((existing) => segments.some((proposed) =>
+      existing.date === proposed.date
+      && existing.startMinute < proposed.endMinute
+      && existing.endMinute > proposed.startMinute,
+    ))
+    if (overlaps) {
+      errors.startTime = 'Este horario se solapa con otro espacio.'
       break
     }
   }
